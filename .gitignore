@@ -1,0 +1,6 @@
+*.o
+*.so
+test_range_coder_cpp
+hello_world_cpp
+__pycache__/
+.pytest_cache/
