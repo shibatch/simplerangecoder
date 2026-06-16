@@ -1,5 +1,6 @@
 #include "range_coder.h"
 #include <stdint.h>
+#include <omp.h>
 
 extern "C" {
 
@@ -140,6 +141,77 @@ int32_t range_decode_interface(
     }
 
     return 0;
+}
+
+void range_encode_batch(
+    int32_t num_blocks,
+    const int32_t* all_q_vals,
+    int32_t block_size,
+    const int32_t* lut_cum_freqs,
+    const int32_t* lut_freqs,
+    int32_t max_alphabet_size,
+    const int32_t* all_decay_indices,
+    const int32_t* all_alphabet_sizes,
+    const int32_t* all_tot_freqs,
+    const int32_t* all_sym_shifts,
+    uint8_t* all_output_buffers,
+    int32_t max_output_size_per_block,
+    int32_t* all_output_sizes
+) {
+    #pragma omp parallel for
+    for (int32_t i = 0; i < num_blocks; ++i) {
+        int32_t decay_idx = all_decay_indices[i];
+        const int32_t* cum_freqs = lut_cum_freqs + (decay_idx * (max_alphabet_size + 1));
+        const int32_t* freqs = lut_freqs + (decay_idx * max_alphabet_size);
+
+        all_output_sizes[i] = range_encode_interface(
+            all_q_vals + (i * (int64_t)block_size),
+            block_size,
+            cum_freqs,
+            freqs,
+            all_alphabet_sizes[i],
+            all_tot_freqs[i],
+            all_sym_shifts[i],
+            all_output_buffers + (i * (int64_t)max_output_size_per_block),
+            max_output_size_per_block
+        );
+    }
+}
+
+void range_decode_batch(
+    int32_t num_blocks,
+    const uint8_t* all_compressed_data,
+    int32_t max_output_size_per_block,
+    const int32_t* all_compressed_lengths,
+    int32_t block_size,
+    const int32_t* lut_cum_freqs,
+    const int32_t* lut_freqs,
+    int32_t max_alphabet_size,
+    const int32_t* all_decay_indices,
+    const int32_t* all_alphabet_sizes,
+    const int32_t* all_tot_freqs,
+    const int32_t* all_sym_shifts,
+    int32_t* all_out_q_vals,
+    int32_t* all_ret_codes
+) {
+    #pragma omp parallel for
+    for (int32_t i = 0; i < num_blocks; ++i) {
+        int32_t decay_idx = all_decay_indices[i];
+        const int32_t* cum_freqs = lut_cum_freqs + (decay_idx * (max_alphabet_size + 1));
+        const int32_t* freqs = lut_freqs + (decay_idx * max_alphabet_size);
+
+        all_ret_codes[i] = range_decode_interface(
+            all_compressed_data + (i * (int64_t)max_output_size_per_block),
+            all_compressed_lengths[i],
+            block_size,
+            cum_freqs,
+            freqs,
+            all_alphabet_sizes[i],
+            all_tot_freqs[i],
+            all_sym_shifts[i],
+            all_out_q_vals + (i * (int64_t)block_size)
+        );
+    }
 }
 
 }
