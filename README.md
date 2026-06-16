@@ -97,14 +97,42 @@ int32_t range_decode_interface(
 - `block_len`: Expected number of symbols.
 - Returns: NumPy array (int32) of reconstructed values.
 
+## Python Integration
+
+To use this library in your Python project:
+
+1.  **Build the shared library**: Run `make librangecoder.so` to generate the `.so` file.
+2.  **Library Placement**:
+    - By default, `SimpleRangeCoder` looks for `./librangecoder.so` in the current working directory.
+    - You can place the `.so` file anywhere and provide the path to the constructor:
+      ```python
+      rc = SimpleRangeCoder("/path/to/librangecoder.so")
+      ```
+3.  **Dependencies**: Ensure `numpy` is installed in your Python environment.
+
 ## Usage Example (Python)
 
 ```python
 import numpy as np
 from fast_rc import SimpleRangeCoder
 
+# Initialize with the path to the shared library
 rc = SimpleRangeCoder("./librangecoder.so")
-# ... define freqs, cum_freqs, etc. ...
+
+# Prepare probability model (Example: Uniform distribution)
+alphabet_size = 257
+freqs = np.full(alphabet_size, 4, dtype=np.int32)
+cum_freqs = np.zeros(alphabet_size + 1, dtype=np.int32)
+cum_freqs[1:] = np.cumsum(freqs)
+tot_freq = 1028
+sym_shift = 0
+
+# Input data
+input_data = np.array([10, 20, 30, 40, 50], dtype=np.int32)
+
+# Encode
 encoded = rc.encode(input_data, cum_freqs, freqs, tot_freq, sym_shift)
+
+# Decode
 decoded = rc.decode(encoded, len(input_data), cum_freqs, freqs, tot_freq, sym_shift)
 ```
