@@ -1,6 +1,6 @@
 CXX = g++
-CXXFLAGS = -O3 -std=c++20 -fPIC -Wall -Wextra
-LDFLAGS = -shared
+CXXFLAGS = -O3 -std=c++20 -fPIC -Wall -Wextra -fopenmp
+LDFLAGS = -shared -fopenmp
 
 TARGET_LIB = librangecoder.so
 TARGET_TEST = test_range_coder_cpp
