@@ -10,6 +10,7 @@ This project is licensed under [CC0 1.0 Universal](LICENSE).
 
 - **Algorithm**: Schindler's 32-bit top-down range coder.
 - **Precision**: 32-bit range, 64-bit low.
+- **Parallelization**: OpenMP-accelerated batch encoding and decoding.
 - **Interfaces**: C-ABI (C++20) and Python (via `ctypes`).
 - **Safety**: Buffer overflow protection and stream consistency checks.
 
@@ -86,6 +87,49 @@ int32_t range_decode_interface(
 ```
 **Returns**: `0` on success, negative error code on failure.
 
+#### `range_encode_batch`
+Encodes multiple blocks in parallel using OpenMP.
+
+```cpp
+void range_encode_batch(
+    int32_t num_blocks,
+    const int32_t* all_q_vals,
+    int32_t block_size,
+    const int32_t* lut_cum_freqs,
+    const int32_t* lut_freqs,
+    int32_t max_alphabet_size,
+    const int32_t* all_decay_indices,
+    const int32_t* all_alphabet_sizes,
+    const int32_t* all_tot_freqs,
+    const int32_t* all_sym_shifts,
+    uint8_t* all_output_buffers,
+    int32_t max_output_size_per_block,
+    int32_t* all_output_sizes
+);
+```
+
+#### `range_decode_batch`
+Decodes multiple blocks in parallel using OpenMP.
+
+```cpp
+void range_decode_batch(
+    int32_t num_blocks,
+    const uint8_t* all_compressed_data,
+    int32_t max_output_size_per_block,
+    const int32_t* all_compressed_lengths,
+    int32_t block_size,
+    const int32_t* lut_cum_freqs,
+    const int32_t* lut_freqs,
+    int32_t max_alphabet_size,
+    const int32_t* all_decay_indices,
+    const int32_t* all_alphabet_sizes,
+    const int32_t* all_tot_freqs,
+    const int32_t* all_sym_shifts,
+    int32_t* all_out_q_vals,
+    int32_t* all_ret_codes
+);
+```
+
 ### Python API (`SimpleRangeCoder`)
 
 #### `encode(q_vals, cum_freqs, freqs, tot_freq, sym_shift)`
@@ -96,6 +140,14 @@ int32_t range_decode_interface(
 - `data_bytes`: `bytes` object to decompress.
 - `block_len`: Expected number of symbols.
 - Returns: NumPy array (int32) of reconstructed values.
+
+#### `batch_encode(...)`
+Encodes a batch of blocks.
+- Returns: `(all_output_buffers, all_output_sizes)`
+
+#### `batch_decode(...)`
+Decodes a batch of blocks.
+- Returns: `(all_out_q_vals, all_ret_codes)`
 
 ## Python Integration
 
