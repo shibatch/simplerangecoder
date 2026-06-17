@@ -157,6 +157,27 @@ The Python API provides methods for both Range Coding and rANS. The argument str
 - `batch_ans_encode(all_q_vals, lut_cum_freqs, lut_freqs, max_alphabet_size, all_decay_indices, all_alphabet_sizes, all_tot_freqs, all_sym_shifts)`: rANS version of `batch_encode`.
 - `batch_ans_decode(all_compressed_data, all_compressed_lengths, block_size, lut_cum_freqs, lut_freqs, max_alphabet_size, all_decay_indices, all_alphabet_sizes, all_tot_freqs, all_sym_shifts)`: rANS version of `batch_decode`.
 
+### Detailed rANS Constraints and Optimization
+
+The rANS backend is highly optimized for performance by using a fixed total frequency ($M = 2^{16} = 65536$). This allows the implementation to replace expensive division and multiplication operations with bitwise shifts (`>> 16`) and masks (`& 0xFFFF`).
+
+#### Frequency Normalization for rANS
+When using rANS, you must scale your frequencies so they sum exactly to 65536.
+
+**Python Example:**
+```python
+def normalize_to_65536(freqs):
+    target = 65536
+    s = np.sum(freqs)
+    normalized = (freqs.astype(np.float64) * target / s).astype(np.int32)
+    normalized[normalized == 0] = 1
+    normalized[-1] += target - np.sum(normalized) # Fix rounding
+    return normalized
+```
+
+**C++ Example:**
+See `example_ans.cpp` for a complete example of how to set up frequency tables and metadata for batch rANS processing.
+
 ## Python Integration
 
 To use this library in your Python project:

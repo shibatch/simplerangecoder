@@ -5,13 +5,14 @@ LDFLAGS = -shared -fopenmp
 TARGET_LIB = librangecoder.so
 TARGET_TEST = test_range_coder_cpp
 TARGET_HELLO = hello_world_cpp
+TARGET_ANS_EXAMPLE = example_ans
 
 SRCS = range_coder.cpp
 OBJS = $(SRCS:.cpp=.o)
 
 .PHONY: all test hello clean
 
-all: $(TARGET_LIB) $(TARGET_TEST) $(TARGET_HELLO)
+all: $(TARGET_LIB) $(TARGET_TEST) $(TARGET_HELLO) $(TARGET_ANS_EXAMPLE)
 
 $(TARGET_LIB): $(OBJS)
 	$(CXX) $(LDFLAGS) -o $@ $^
@@ -20,6 +21,9 @@ $(TARGET_TEST): test_range_coder.cpp range_coder.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
 $(TARGET_HELLO): hello_world.cpp range_coder.cpp
+	$(CXX) $(CXXFLAGS) -o $@ $^
+
+$(TARGET_ANS_EXAMPLE): example_ans.cpp range_coder.cpp
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
 %.o: %.cpp
@@ -35,4 +39,4 @@ hello: $(TARGET_HELLO)
 	python3 hello_world.py
 
 clean:
-	rm -f $(OBJS) $(TARGET_LIB) $(TARGET_TEST) $(TARGET_HELLO)
+	rm -f $(OBJS) $(TARGET_LIB) $(TARGET_TEST) $(TARGET_HELLO) $(TARGET_ANS_EXAMPLE)
