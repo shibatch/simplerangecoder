@@ -8,9 +8,11 @@ This project is licensed under [CC0 1.0 Universal](LICENSE).
 
 ## Features
 
-- **Algorithm**: Schindler's 32-bit top-down range coder.
-- **Precision**: 32-bit range, 64-bit low.
-- **Parallelization**: OpenMP-accelerated batch encoding and decoding.
+- **Algorithms**:
+  - Schindler's 32-bit top-down Range Coder.
+  - rANS (Range Asymmetric Numeral Systems) with LIFO concealment (reverse encoding).
+- **Precision**: 32-bit state for both algorithms.
+- **Parallelization**: OpenMP-accelerated batch encoding and decoding for both backends.
 - **Interfaces**: C-ABI (C++20) and Python (via `ctypes`).
 - **Safety**: Buffer overflow protection and stream consistency checks.
 
@@ -111,24 +113,8 @@ void range_encode_batch(
 #### `range_decode_batch`
 Decodes multiple blocks in parallel using OpenMP.
 
-```cpp
-void range_decode_batch(
-    int32_t num_blocks,
-    const uint8_t* all_compressed_data,
-    int32_t max_output_size_per_block,
-    const int32_t* all_compressed_lengths,
-    int32_t block_size,
-    const int32_t* lut_cum_freqs,
-    const int32_t* lut_freqs,
-    int32_t max_alphabet_size,
-    const int32_t* all_decay_indices,
-    const int32_t* all_alphabet_sizes,
-    const int32_t* all_tot_freqs,
-    const int32_t* all_sym_shifts,
-    int32_t* all_out_q_vals,
-    int32_t* all_ret_codes
-);
-```
+#### `ans_encode_batch` / `ans_decode_batch`
+rANS equivalents of the batch Range Coder functions. These use a 32-bit state and assume `tot_freq = 65536`.
 
 ### Python API (`SimpleRangeCoder`)
 
@@ -148,6 +134,12 @@ Encodes a batch of blocks.
 #### `batch_decode(...)`
 Decodes a batch of blocks.
 - Returns: `(all_out_q_vals, all_ret_codes)`
+
+#### `ans_encode(...)` / `ans_decode(...)`
+rANS versions of serial encode/decode.
+
+#### `batch_ans_encode(...)` / `batch_ans_decode(...)`
+rANS versions of batch encode/decode.
 
 ## Python Integration
 

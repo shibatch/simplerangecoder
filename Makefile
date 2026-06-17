@@ -28,6 +28,7 @@ $(TARGET_HELLO): hello_world.cpp range_coder.cpp
 test: $(TARGET_TEST)
 	./$(TARGET_TEST)
 	python3 -m unittest test_range_coder.py
+	python3 test_ans.py
 
 hello: $(TARGET_HELLO)
 	./$(TARGET_HELLO)

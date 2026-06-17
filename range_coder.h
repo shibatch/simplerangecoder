@@ -127,6 +127,75 @@ void range_decode_batch(
     int32_t* all_ret_codes
 );
 
+/**
+ * @brief rANS Encode Interface
+ */
+int32_t ans_encode_interface(
+    const int32_t* q_vals,
+    int32_t num_vals,
+    const int32_t* cum_freqs,
+    const int32_t* freqs,
+    int32_t alphabet_size,
+    int32_t tot_freq,
+    int32_t sym_shift,
+    uint8_t* out_buf,
+    int32_t out_buf_len
+);
+
+/**
+ * @brief rANS Decode Interface
+ */
+int32_t ans_decode_interface(
+    const uint8_t* data,
+    int32_t data_len,
+    int32_t block_len,
+    const int32_t* cum_freqs,
+    const int32_t* freqs,
+    int32_t alphabet_size,
+    int32_t tot_freq,
+    int32_t sym_shift,
+    int32_t* out_q_vals
+);
+
+/**
+ * @brief Batch rANS Encode using OpenMP
+ */
+void ans_encode_batch(
+    int32_t num_blocks,
+    const int32_t* all_q_vals,
+    int32_t block_size,
+    const int32_t* lut_cum_freqs,
+    const int32_t* lut_freqs,
+    int32_t max_alphabet_size,
+    const int32_t* all_decay_indices,
+    const int32_t* all_alphabet_sizes,
+    const int32_t* all_tot_freqs,
+    const int32_t* all_sym_shifts,
+    uint8_t* all_output_buffers,
+    int32_t max_output_size_per_block,
+    int32_t* all_output_sizes
+);
+
+/**
+ * @brief Batch rANS Decode using OpenMP
+ */
+void ans_decode_batch(
+    int32_t num_blocks,
+    const uint8_t* all_compressed_data,
+    int32_t max_output_size_per_block,
+    const int32_t* all_compressed_lengths,
+    int32_t block_size,
+    const int32_t* lut_cum_freqs,
+    const int32_t* lut_freqs,
+    int32_t max_alphabet_size,
+    const int32_t* all_decay_indices,
+    const int32_t* all_alphabet_sizes,
+    const int32_t* all_tot_freqs,
+    const int32_t* all_sym_shifts,
+    int32_t* all_out_q_vals,
+    int32_t* all_ret_codes
+);
+
 #ifdef __cplusplus
 }
 #endif
