@@ -129,6 +129,17 @@ void range_decode_batch(
 
 /**
  * @brief rANS Encode Interface
+ *
+ * @param q_vals Input array of signed integers.
+ * @param num_vals Number of elements in q_vals.
+ * @param cum_freqs Cumulative frequency array.
+ * @param freqs Individual frequency array.
+ * @param alphabet_size Maximum number of buckets.
+ * @param tot_freq Sum of frequencies (MUST be 65536 for rANS).
+ * @param sym_shift Offset to convert q_val to positive index.
+ * @param out_buf Output buffer for compressed byte stream.
+ * @param out_buf_len Maximum size of out_buf.
+ * @return int32_t Number of bytes written, or -1 on error.
  */
 int32_t ans_encode_interface(
     const int32_t* q_vals,
@@ -144,6 +155,17 @@ int32_t ans_encode_interface(
 
 /**
  * @brief rANS Decode Interface
+ *
+ * @param data Compressed byte stream.
+ * @param data_len Length of data in bytes.
+ * @param block_len Number of elements to reconstruct.
+ * @param cum_freqs Cumulative frequency array.
+ * @param freqs Individual frequency array.
+ * @param alphabet_size Maximum number of buckets.
+ * @param tot_freq Sum of frequencies (MUST be 65536 for rANS).
+ * @param sym_shift Offset used during encoding.
+ * @param out_q_vals Output array for reconstructed integers.
+ * @return int32_t 0 on success, or negative error code.
  */
 int32_t ans_decode_interface(
     const uint8_t* data,
@@ -159,6 +181,20 @@ int32_t ans_decode_interface(
 
 /**
  * @brief Batch rANS Encode using OpenMP
+ *
+ * @param num_blocks Number of blocks to encode.
+ * @param all_q_vals Flat array of symbols.
+ * @param block_size Number of symbols per block.
+ * @param lut_cum_freqs Flat LUT of cumulative frequencies.
+ * @param lut_freqs Flat LUT of frequencies.
+ * @param max_alphabet_size Stride for LUT indexing.
+ * @param all_decay_indices Indices into LUT for each block.
+ * @param all_alphabet_sizes Alphabet sizes for each block.
+ * @param all_tot_freqs Total frequencies for each block (MUST be 65536 for rANS).
+ * @param all_sym_shifts Symbol shifts for each block.
+ * @param all_output_buffers Flat pre-allocated output buffer.
+ * @param max_output_size_per_block Reserved size per block in all_output_buffers.
+ * @param all_output_sizes Array to store actual written size for each block (or -1 on error).
  */
 void ans_encode_batch(
     int32_t num_blocks,
@@ -178,6 +214,21 @@ void ans_encode_batch(
 
 /**
  * @brief Batch rANS Decode using OpenMP
+ *
+ * @param num_blocks Number of blocks to decode.
+ * @param all_compressed_data Flat array of compressed data.
+ * @param max_output_size_per_block Stride for compressed data input.
+ * @param all_compressed_lengths Actual length of each compressed block.
+ * @param block_size Number of symbols per block.
+ * @param lut_cum_freqs Flat LUT of cumulative frequencies.
+ * @param lut_freqs Flat LUT of frequencies.
+ * @param max_alphabet_size Stride for LUT indexing.
+ * @param all_decay_indices Indices into LUT for each block.
+ * @param all_alphabet_sizes Alphabet sizes for each block.
+ * @param all_tot_freqs Total frequencies for each block (MUST be 65536 for rANS).
+ * @param all_sym_shifts Symbol shifts for each block.
+ * @param all_out_q_vals Flat array to store reconstructed integers.
+ * @param all_ret_codes Array to store return codes (0 on success, negative on error).
  */
 void ans_decode_batch(
     int32_t num_blocks,

@@ -53,17 +53,20 @@ make hello
 
 ### C++ ABI (`extern "C"`)
 
-#### `range_encode_interface`
+The library provides two entropy coding backends: Range Coder and rANS. Both follow the same C-ABI for easy interchangeability.
+
+#### `range_encode_interface` / `ans_encode_interface`
 Encodes an array of integers into a byte stream.
+**Note**: For `ans_encode_interface`, `tot_freq` must be `65536`.
 
 ```cpp
-int32_t range_encode_interface(
+int32_t range_encode_interface( // or ans_encode_interface
     const int32_t* q_vals,    // Input integers
     int32_t num_vals,         // Number of input integers
     const int32_t* cum_freqs, // Cumulative frequencies (alphabet_size + 1)
     const int32_t* freqs,     // Individual frequencies (alphabet_size)
     int32_t alphabet_size,    // Number of possible symbols
-    int32_t tot_freq,         // Sum of frequencies
+    int32_t tot_freq,         // Sum of frequencies (Must be 65536 for rANS)
     int32_t sym_shift,        // Offset: sym = q_val + sym_shift
     uint8_t* out_buf,         // Output buffer
     int32_t out_buf_len       // Output buffer capacity
@@ -71,75 +74,109 @@ int32_t range_encode_interface(
 ```
 **Returns**: Number of bytes written, or `-1` on failure (e.g., buffer overflow).
 
-#### `range_decode_interface`
+#### `range_decode_interface` / `ans_decode_interface`
 Decodes a byte stream back into integers.
+**Note**: For `ans_decode_interface`, `tot_freq` must be `65536`.
 
 ```cpp
-int32_t range_decode_interface(
+int32_t range_decode_interface( // or ans_decode_interface
     const uint8_t* data,      // Compressed byte stream
     int32_t data_len,         // Length of input data
     int32_t block_len,        // Number of elements to decode
     const int32_t* cum_freqs, // Cumulative frequencies
     const int32_t* freqs,     // Individual frequencies
     int32_t alphabet_size,    // Number of symbols
-    int32_t tot_freq,         // Sum of frequencies
+    int32_t tot_freq,         // Sum of frequencies (Must be 65536 for rANS)
     int32_t sym_shift,        // Same offset as used in encoding
     int32_t* out_q_vals       // Output array for integers
 );
 ```
 **Returns**: `0` on success, negative error code on failure.
 
-#### `range_encode_batch`
-Encodes multiple blocks in parallel using OpenMP.
+#### `range_encode_batch` / `ans_encode_batch`
+Encodes multiple blocks in parallel using OpenMP. The argument structure is identical for both Range Coder and rANS backends.
+**Note**: For rANS, `all_tot_freqs` must contain `65536` for all blocks.
 
 ```cpp
-void range_encode_batch(
-    int32_t num_blocks,
-    const int32_t* all_q_vals,
-    int32_t block_size,
-    const int32_t* lut_cum_freqs,
-    const int32_t* lut_freqs,
-    int32_t max_alphabet_size,
-    const int32_t* all_decay_indices,
-    const int32_t* all_alphabet_sizes,
-    const int32_t* all_tot_freqs,
-    const int32_t* all_sym_shifts,
-    uint8_t* all_output_buffers,
-    int32_t max_output_size_per_block,
-    int32_t* all_output_sizes
+void range_encode_batch( // or ans_encode_batch
+    int32_t num_blocks,               // Total number of blocks to process
+    const int32_t* all_q_vals,        // Flat array of input symbols [num_blocks * block_size]
+    int32_t block_size,               // Number of symbols per block
+    const int32_t* lut_cum_freqs,     // Flat LUT of cumulative frequencies
+    const int32_t* lut_freqs,         // Flat LUT of frequencies
+    int32_t max_alphabet_size,        // Stride for LUT indexing
+    const int32_t* all_decay_indices, // Indices into LUT for each block
+    const int32_t* all_alphabet_sizes,// Alphabet sizes for each block
+    const int32_t* all_tot_freqs,     // Total frequencies for each block (Must be 65536 for rANS)
+    const int32_t* all_sym_shifts,    // Symbol shifts for each block
+    uint8_t* all_output_buffers,      // Flat pre-allocated output buffer [num_blocks * max_output_size_per_block]
+    int32_t max_output_size_per_block,// Reserved size per block in all_output_buffers
+    int32_t* all_output_sizes         // Array to store actual written size for each block (or -1 on error)
 );
 ```
 
-#### `range_decode_batch`
+#### `range_decode_batch` / `ans_decode_batch`
 Decodes multiple blocks in parallel using OpenMP.
+**Note**: For rANS, `all_tot_freqs` must contain `65536` for all blocks.
 
-#### `ans_encode_batch` / `ans_decode_batch`
-rANS equivalents of the batch Range Coder functions. These use a 32-bit state and assume `tot_freq = 65536`.
+```cpp
+void range_decode_batch( // or ans_decode_batch
+    int32_t num_blocks,               // Number of blocks to decode
+    const uint8_t* all_compressed_data, // Flat array of compressed data [num_blocks * max_output_size_per_block]
+    int32_t max_output_size_per_block,// Stride for compressed data input
+    const int32_t* all_compressed_lengths, // Actual length of each compressed block
+    int32_t block_size,               // Number of symbols per block
+    const int32_t* lut_cum_freqs,     // Flat LUT of cumulative frequencies
+    const int32_t* lut_freqs,         // Flat LUT of frequencies
+    int32_t max_alphabet_size,        // Stride for LUT indexing
+    const int32_t* all_decay_indices, // Indices into LUT for each block
+    const int32_t* all_alphabet_sizes,// Alphabet sizes for each block
+    const int32_t* all_tot_freqs,     // Total frequencies for each block (Must be 65536 for rANS)
+    const int32_t* all_sym_shifts,    // Symbol shifts for each block
+    int32_t* all_out_q_vals,          // Flat array to store reconstructed integers [num_blocks * block_size]
+    int32_t* all_ret_codes            // Array to store return codes (0 on success, negative on error)
+);
+```
+
 
 ### Python API (`SimpleRangeCoder`)
 
-#### `encode(q_vals, cum_freqs, freqs, tot_freq, sym_shift)`
-- `q_vals`: NumPy array (int32) of values to compress.
-- Returns: `bytes` object containing the compressed stream.
+The Python API provides methods for both Range Coding and rANS. The argument structures are consistent across both backends.
 
-#### `decode(data_bytes, block_len, cum_freqs, freqs, tot_freq, sym_shift)`
-- `data_bytes`: `bytes` object to decompress.
-- `block_len`: Expected number of symbols.
-- Returns: NumPy array (int32) of reconstructed values.
+#### Range Coder Methods
+- `encode(q_vals, cum_freqs, freqs, tot_freq, sym_shift)`: Encodes a single array of integers.
+- `decode(data_bytes, block_len, cum_freqs, freqs, tot_freq, sym_shift)`: Decodes a byte stream.
+- `batch_encode(all_q_vals, lut_cum_freqs, lut_freqs, max_alphabet_size, all_decay_indices, all_alphabet_sizes, all_tot_freqs, all_sym_shifts)`: Encodes multiple blocks in parallel.
+- `batch_decode(all_compressed_data, all_compressed_lengths, block_size, lut_cum_freqs, lut_freqs, max_alphabet_size, all_decay_indices, all_alphabet_sizes, all_tot_freqs, all_sym_shifts)`: Decodes multiple blocks in parallel.
 
-#### `batch_encode(...)`
-Encodes a batch of blocks.
-- Returns: `(all_output_buffers, all_output_sizes)`
+#### rANS Methods
+**Note**: For all rANS methods, `tot_freq` (or values in `all_tot_freqs`) must be `65536`.
 
-#### `batch_decode(...)`
-Decodes a batch of blocks.
-- Returns: `(all_out_q_vals, all_ret_codes)`
+- `ans_encode(q_vals, cum_freqs, freqs, tot_freq, sym_shift)`: rANS version of `encode`.
+- `ans_decode(data_bytes, block_len, cum_freqs, freqs, tot_freq, sym_shift)`: rANS version of `decode`.
+- `batch_ans_encode(all_q_vals, lut_cum_freqs, lut_freqs, max_alphabet_size, all_decay_indices, all_alphabet_sizes, all_tot_freqs, all_sym_shifts)`: rANS version of `batch_encode`.
+- `batch_ans_decode(all_compressed_data, all_compressed_lengths, block_size, lut_cum_freqs, lut_freqs, max_alphabet_size, all_decay_indices, all_alphabet_sizes, all_tot_freqs, all_sym_shifts)`: rANS version of `batch_decode`.
 
-#### `ans_encode(...)` / `ans_decode(...)`
-rANS versions of serial encode/decode.
+### Detailed rANS Constraints and Optimization
 
-#### `batch_ans_encode(...)` / `batch_ans_decode(...)`
-rANS versions of batch encode/decode.
+The rANS backend is highly optimized for performance by using a fixed total frequency ($M = 2^{16} = 65536$). This allows the implementation to replace expensive division and multiplication operations with bitwise shifts (`>> 16`) and masks (`& 0xFFFF`).
+
+#### Frequency Normalization for rANS
+When using rANS, you must scale your frequencies so they sum exactly to 65536.
+
+**Python Example:**
+```python
+def normalize_to_65536(freqs):
+    target = 65536
+    s = np.sum(freqs)
+    normalized = (freqs.astype(np.float64) * target / s).astype(np.int32)
+    normalized[normalized == 0] = 1
+    normalized[-1] += target - np.sum(normalized) # Fix rounding
+    return normalized
+```
+
+**C++ Example:**
+See `example_ans.cpp` for a complete example of how to set up frequency tables and metadata for batch rANS processing.
 
 ## Python Integration
 
